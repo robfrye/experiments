@@ -170,3 +170,29 @@ footer {
     padding: 1rem;
     font-size: 0.9rem;
 }
+
+/* New Game Badge */
+.new-badge {
+    display: inline-block;
+    background: #ff4444;
+    color: #fff;
+    font-size: 0.7rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 12px;
+    margin-left: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    box-shadow: 0 2px 8px rgba(255, 68, 68, 0.3);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 2px 8px rgba(255, 68, 68, 0.3);
+    }
+    50% { 
+        transform: scale(1.05);
+        box-shadow: 0 2px 12px rgba(255, 68, 68, 0.5);
+    }
+}
