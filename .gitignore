@@ -1,0 +1,10 @@
+# Ignore files and folders related to project documentation and progress
+# Ignore specific documentation and progress files
+experiments/game/PRD.md
+experiments/game/v2_Milestone.md
+experiments/game/v2_Progress.md
+experiments/game/Human.md
+
+
+# Ignore the entire Archive folder
+experiments/game/Archive/
