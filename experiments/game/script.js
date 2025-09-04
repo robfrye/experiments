@@ -11,7 +11,7 @@ const gameState = {
     deltaTime: 0,
     fps: 60,
     frameCount: 0,
-    currentState: 'title', // 'title', 'levelSelect', 'playing', 'paused', 'gameOver', 'levelComplete'
+    currentState: 'title', // 'title', 'playing', 'paused', 'gameOver', 'levelComplete'
     titleClickReady: true,
     // Performance monitoring
     performanceStats: {
@@ -1344,9 +1344,6 @@ function gameLoop(currentTime) {
         case 'title':
             updateTitleScreen();
             break;
-        case 'levelSelect':
-            updateLevelSelectScreen();
-            break;
         case 'playing':
             update(gameState.deltaTime);
             break;
@@ -1515,9 +1512,9 @@ function optimizeArrays() {
 
 // Update title screen
 function updateTitleScreen() {
-    // Handle click to go to level selection
+    // Handle click to start game directly
     if (input.click && gameState.titleClickReady) {
-        goToLevelSelection();
+        startGame();
         input.click = false;
     }
 }
@@ -1551,9 +1548,9 @@ function updateLevelSelectScreen() {
 
 // Level Complete Screen Update Function  
 function updateLevelCompleteScreen() {
-    // Handle ESC to go to level selection
+    // Handle ESC to go back to title
     if (input.escape) {
-        goToLevelSelection();
+        goToTitleScreen();
         input.escape = false;
         return;
     }
@@ -1564,7 +1561,7 @@ function updateLevelCompleteScreen() {
             levelManager.levelProgress[levelManager.currentLevel + 1].unlocked) {
             startLevel(levelManager.currentLevel + 1);
         } else {
-            goToLevelSelection();
+            goToTitleScreen();
         }
         input.enter = false;
         return;
@@ -1585,7 +1582,7 @@ function updateLevelCompleteScreen() {
             levelManager.levelProgress[levelManager.currentLevel + 1].unlocked) {
             startLevel(levelManager.currentLevel + 1);
         } else {
-            goToLevelSelection();
+            goToTitleScreen();
         }
         input.click = false;
     }
@@ -1614,9 +1611,12 @@ function goToLevelSelection() {
     gameState.currentState = 'levelSelect';
     gameState.titleClickReady = false;
     
-    // Initialize audio if not already done
+    // Initialize audio if not already done - but don't block on it
     if (audioSystem.enabled && !audioSystem.initialized) {
-        initAudioSystem();
+        initAudioSystem().catch(error => {
+            console.warn('Audio initialization failed in level select:', error);
+            // Continue anyway - game should work without audio
+        });
     }
     
     console.log('Navigated to level selection');
@@ -1667,9 +1667,37 @@ function startLevel(levelNumber) {
     }
 }
 
-// Start the game from title screen (legacy function - now goes to level selection)
+// Start the game from title screen
 function startGame() {
-    goToLevelSelection();
+    // Initialize and resume audio context on user interaction
+    if (audioSystem.enabled && !audioSystem.audioContext) {
+        initAudioSystem().then(() => {
+            console.log('Audio system ready for game');
+        }).catch(error => {
+            console.warn('Audio initialization failed:', error);
+        });
+    } else if (audioSystem.audioContext) {
+        resumeAudioContext();
+    }
+    
+    // Start with Level 1
+    if (levelManager.loadLevel(1)) {
+        gameState.currentState = 'playing';
+        gameState.titleClickReady = false;
+        
+        // Start level-specific background music
+        setTimeout(() => {
+            startBackgroundMusic();
+        }, 100); // Small delay to ensure audio context is ready
+        
+        // Play game start sound
+        playSound('menuConfirm');
+        
+        console.log('Game started!');
+    } else {
+        console.error('Failed to load level 1');
+        playSound('menuBack');
+    }
 }
 
 // Restart the game from game over
@@ -2045,6 +2073,9 @@ function initAudioSystem() {
             return audioSystem.audioContext.resume().then(() => {
                 console.log('Audio context resumed');
                 return initializeAudioAssets();
+            }).catch(error => {
+                console.warn('Failed to resume audio context:', error);
+                return initializeAudioAssets(); // Try to continue anyway
             });
         } else {
             return initializeAudioAssets();
@@ -2061,18 +2092,24 @@ function initAudioSystem() {
 function initializeAudioAssets() {
     console.log('Initializing audio assets...');
     
-    // Create procedural sound effects using Web Audio API
-    createProceduralSounds();
-    
-    // Create background music tracks
-    createBackgroundMusicTracks();
-    
-    // Load additional audio assets if available
-    loadExternalAudioAssets();
-    
-    audioSystem.initialized = true;
-    console.log('Audio system initialized successfully');
-    return Promise.resolve();
+    try {
+        // Create procedural sound effects using Web Audio API
+        createProceduralSounds();
+        
+        // Create background music tracks
+        createBackgroundMusicTracks();
+        
+        // Load additional audio assets if available
+        loadExternalAudioAssets();
+        
+        audioSystem.initialized = true;
+        console.log('Audio system initialized successfully');
+        return Promise.resolve();
+    } catch (error) {
+        console.warn('Error initializing audio assets:', error);
+        audioSystem.initialized = false;
+        return Promise.resolve(); // Continue anyway
+    }
 }
 
 // Create procedural sound effects for immediate use
@@ -2690,9 +2727,6 @@ function startBackgroundMusic(trackKey = null) {
             case 'title':
                 trackKey = 'title_theme';
                 break;
-            case 'levelSelect':
-                trackKey = 'title_theme';
-                break;
             case 'playing':
                 const currentLevel = levelManager.currentLevel;
                 const levelAudio = audioSystem.levelAudio[currentLevel];
@@ -2760,6 +2794,12 @@ function setBackgroundMusicLooping(shouldLoop) {
 // Play sound effect wrapper function
 function playSound(soundName) {
     if (!audioSystem.enabled || !audioSystem.settings.sfxEnabled) {
+        return;
+    }
+    
+    // Don't try to play sounds if audio system isn't ready
+    if (!audioSystem.initialized || !audioSystem.audioContext) {
+        console.warn(`Attempted to play sound '${soundName}' but audio system not ready`);
         return;
     }
     
@@ -3504,9 +3544,6 @@ function render() {
         case 'title':
             renderTitleScreen();
             break;
-        case 'levelSelect':
-            renderLevelSelectScreen();
-            break;
         case 'playing':
             renderGameplay();
             break;
@@ -3813,7 +3850,7 @@ function renderLevelCompleteOverlay() {
     // Instructions
     ctx.font = '14px Courier New';
     ctx.fillStyle = '#cccccc';
-    ctx.fillText('Press ESC for level select, ENTER to continue', canvas.width / 2 - 150, canvas.height / 2 + 120);
+    ctx.fillText('Press ESC for title screen, ENTER to continue', canvas.width / 2 - 150, canvas.height / 2 + 120);
     
     ctx.shadowBlur = 0;
 }
@@ -5383,27 +5420,15 @@ function handleKeyDown(event) {
     switch (event.code) {
         case 'ArrowLeft':
             input.left = true;
-            if (gameState.currentState === 'levelSelect' || gameState.currentState === 'title') {
-                playSound('menuSelect');
-            }
             break;
         case 'ArrowRight':
             input.right = true;
-            if (gameState.currentState === 'levelSelect' || gameState.currentState === 'title') {
-                playSound('menuSelect');
-            }
             break;
         case 'ArrowUp':
             input.up = true;
-            if (gameState.currentState === 'levelSelect' || gameState.currentState === 'title') {
-                playSound('menuSelect');
-            }
             break;
         case 'ArrowDown':
             input.down = true;
-            if (gameState.currentState === 'levelSelect' || gameState.currentState === 'title') {
-                playSound('menuSelect');
-            }
             break;
         case 'Space':
             input.jump = true;
@@ -5446,39 +5471,21 @@ function handleKeyDown(event) {
             break;
         case 'Digit1':
             input.key1 = true;
-            if (gameState.currentState === 'levelSelect') {
-                playSound('menuSelect');
-            }
             break;
         case 'Digit2':
             input.key2 = true;
-            if (gameState.currentState === 'levelSelect') {
-                playSound('menuSelect');
-            }
             break;
         case 'Digit3':
             input.key3 = true;
-            if (gameState.currentState === 'levelSelect') {
-                playSound('menuSelect');
-            }
             break;
         case 'Digit4':
             input.key4 = true;
-            if (gameState.currentState === 'levelSelect') {
-                playSound('menuSelect');
-            }
             break;
         case 'Digit5':
             input.key5 = true;
-            if (gameState.currentState === 'levelSelect') {
-                playSound('menuSelect');
-            }
             break;
         case 'Digit6':
             input.key6 = true;
-            if (gameState.currentState === 'levelSelect') {
-                playSound('menuSelect');
-            }
             break;
         case 'Minus': // Volume down
             if (event.shiftKey) {
@@ -5559,26 +5566,32 @@ function handleKeyUp(event) {
 // Handle mouse click events
 function handleMouseClick(event) {
     // Resume audio context on first user interaction
-    if (audioSystem.audioContext && audioSystem.audioContext.state === 'suspended') {
-        resumeAudioContext();
+    try {
+        if (audioSystem.audioContext && audioSystem.audioContext.state === 'suspended') {
+            resumeAudioContext();
+        }
+    } catch (error) {
+        console.warn('Audio context resume failed:', error);
     }
     
     input.click = true;
     
-    // Play appropriate UI sound based on current state
-    switch (gameState.currentState) {
-        case 'title':
-            playSound('menuConfirm');
-            break;
-        case 'levelSelect':
-            playSound('menuSelect');
-            break;
-        case 'levelComplete':
-            playSound('menuConfirm');
-            break;
-        case 'gameOver':
-            playSound('menuConfirm');
-            break;
+    // Play appropriate UI sound based on current state - with error handling
+    try {
+        switch (gameState.currentState) {
+            case 'title':
+                playSound('menuConfirm');
+                break;
+            case 'levelComplete':
+                playSound('menuConfirm');
+                break;
+            case 'gameOver':
+                playSound('menuConfirm');
+                break;
+        }
+    } catch (error) {
+        console.warn('Failed to play UI sound:', error);
+        // Continue with the click handling even if sound fails
     }
     
     event.preventDefault();
