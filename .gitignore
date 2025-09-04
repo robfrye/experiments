@@ -8,3 +8,7 @@ experiments/game/Human.md
 
 # Ignore the entire Archive folder
 experiments/game/Archive/
+
+# Ignore macOS .DS_Store files
+.DS_Store
+**/.DS_Store
