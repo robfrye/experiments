@@ -63,6 +63,12 @@
         <div class="raindrop"></div>
     </div>
 
+    <!-- Music Player -->
+    <audio id="background-music" loop>
+        <source src="/music/Neon City Blues.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
     <div class="main-layout">
         <div class="image-side">
             <img src="/images/hedge-cop-vhs.png" alt="Hedge Cop VHS" class="centered-image" id="spin-image">
@@ -74,6 +80,14 @@
             </button>
             <button class="menu-btn" id="gpt-btn">Hedge Cop GPT</button>
                 <button class="menu-btn" id="trailer-btn">Movie Trailer</button>
+            
+            <!-- Music Controls -->
+            <div class="music-controls-nav">
+                <button id="play-pause-btn" class="control-btn" title="Play/Pause">
+                    <span class="play-icon">▶️</span>
+                    <span class="music-text">Hedge Cop Theme</span>
+                </button>
+            </div>
         </nav>
         <div id="lightbox-overlay" class="lightbox-overlay">
             <div class="lightbox-content">
@@ -122,6 +136,39 @@
                 lightbox.style.display = 'none';
                 trailerVideo.pause();
             }
+        });
+
+        // Music Player Functionality - Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', function() {
+            const backgroundMusic = document.getElementById('background-music');
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            const playIcon = playPauseBtn.querySelector('.play-icon');
+
+            if (!backgroundMusic || !playPauseBtn || !playIcon) {
+                console.error('Music elements not found!');
+                return;
+            }
+
+            // Set initial volume
+            backgroundMusic.volume = 0.5;
+
+            // Simple Play/Pause functionality
+            playPauseBtn.addEventListener('click', function() {
+                if (backgroundMusic.paused) {
+                    backgroundMusic.play();
+                } else {
+                    backgroundMusic.pause();
+                }
+            });
+
+            // Update button icon when music state changes
+            backgroundMusic.addEventListener('play', () => {
+                playIcon.textContent = '⏸️';
+            });
+
+            backgroundMusic.addEventListener('pause', () => {
+                playIcon.textContent = '▶️';
+            });
         });
     </script>
 </body>
