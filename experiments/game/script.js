@@ -11,7 +11,7 @@ const gameState = {
     deltaTime: 0,
     fps: 60,
     frameCount: 0,
-    currentState: 'title', // 'title', 'playing', 'paused', 'gameOver', 'levelComplete'
+    currentState: 'title', // 'title', 'playing', 'paused', 'gameOver', 'levelComplete', 'congratulations'
     titleClickReady: true,
     // Performance monitoring
     performanceStats: {
@@ -96,6 +96,11 @@ const enemies = [];
 
 // Collectibles array
 const collectibles = [];
+
+// Game images
+const gameImages = {
+    congratsImage: new Image()
+};
 
 // Game stats
 const gameStats = {
@@ -253,9 +258,7 @@ function createEnemy(type, x, y) {
         aggroRange: 300,
         attackRange: 50,
         attackTimer: 0,
-        attackCooldown: 1.0,
-        stunTimer: 0,
-        stunDuration: 0.5
+        attackCooldown: 1.0
     };
 
     if (type === 'car') {
@@ -372,8 +375,8 @@ function createEnemy(type, x, y) {
             type: 'knife_thug',
             width: 48,
             height: 72,
-            speed: 90,
-            y: GAME_CONFIG.GROUND_Y - 72,
+            speed: 120, // Increased from 90
+            y: GAME_CONFIG.GROUND_Y - 102,
             patrolDistance: 100,
             originalX: x,
             patrolDirection: 1,
@@ -390,8 +393,8 @@ function createEnemy(type, x, y) {
             type: 'gun_thug',
             width: 48,
             height: 72,
-            speed: 70,
-            y: GAME_CONFIG.GROUND_Y - 72,
+            speed: 100, // Increased from 70
+            y: GAME_CONFIG.GROUND_Y - 102,
             patrolDistance: 80,
             originalX: x,
             patrolDirection: 1,
@@ -409,8 +412,8 @@ function createEnemy(type, x, y) {
             type: 'heavy_gangster',
             width: 64,
             height: 80,
-            speed: 40,
-            y: GAME_CONFIG.GROUND_Y - 80,
+            speed: 70, // Increased from 40
+            y: GAME_CONFIG.GROUND_Y - 120,
             patrolDistance: 60,
             originalX: x,
             patrolDirection: 1,
@@ -429,8 +432,8 @@ function createEnemy(type, x, y) {
             type: 'triad_boss',
             width: 80,
             height: 96,
-            speed: 60,
-            y: GAME_CONFIG.GROUND_Y - 96,
+            speed: 140, // Increased from 60 - much faster boss
+            y: GAME_CONFIG.GROUND_Y - 112,
             patrolDistance: 150,
             originalX: x,
             patrolDirection: 1,
@@ -454,10 +457,10 @@ function createEnemy(type, x, y) {
         return {
             ...baseEnemy,
             type: 'final_boss',
-            width: 96,
-            height: 112,
-            speed: 80,
-            y: GAME_CONFIG.GROUND_Y - 112,
+            width: 288, // 3x larger (was 96)
+            height: 336, // 3x larger (was 112)
+            speed: 160, // Increased from 80 - very fast final boss
+            y: GAME_CONFIG.GROUND_Y - 366, // Adjusted for new height (122 * 3)
             patrolDistance: 200,
             originalX: x,
             patrolDirection: 1,
@@ -589,6 +592,7 @@ const GAME_CONFIG = {
 const levelManager = {
     currentLevel: 1,
     totalLevels: 6,
+    bossSpawned: false, // Track if boss has been spawned for boss levels
     levelProgress: {
         1: { unlocked: true, completed: false, bestScore: 0 },
         2: { unlocked: false, completed: false, bestScore: 0 },
@@ -924,44 +928,27 @@ const levelManager = {
             backgroundColor: "#1a1a1a",
             platforms: [
                 // Industrial complex ground level
-                { x: 0, y: 750, width: 400, height: 50, type: 'ground' },
-                { x: 500, y: 750, width: 600, height: 50, type: 'ground' },
-                { x: 1200, y: 750, width: 400, height: 50, type: 'ground' },
-                { x: 1700, y: 750, width: 500, height: 50, type: 'ground' },
-                { x: 2300, y: 750, width: 400, height: 50, type: 'ground' },
-                { x: 2800, y: 750, width: 400, height: 50, type: 'ground' },
+                { x: 0, y: 750, width: 600, height: 50, type: 'ground' },
+                { x: 800, y: 750, width: 800, height: 50, type: 'ground' },
+                { x: 1800, y: 750, width: 600, height: 50, type: 'ground' },
+                { x: 2600, y: 750, width: 600, height: 50, type: 'ground' },
                 
-                // Multi-level factory platforms - lower tier
-                { x: 200, y: 650, width: 200, height: 25, type: 'platform' },
-                { x: 500, y: 650, width: 300, height: 25, type: 'platform' },
-                { x: 900, y: 630, width: 250, height: 25, type: 'platform' },
-                { x: 1250, y: 650, width: 300, height: 25, type: 'platform' },
-                { x: 1650, y: 630, width: 200, height: 25, type: 'platform' },
-                { x: 1950, y: 650, width: 250, height: 25, type: 'platform' },
-                { x: 2300, y: 630, width: 300, height: 25, type: 'platform' },
-                { x: 2700, y: 650, width: 200, height: 25, type: 'platform' },
+                // Lower tier platforms - reduced count
+                { x: 400, y: 650, width: 250, height: 25, type: 'platform' },
+                { x: 1000, y: 630, width: 300, height: 25, type: 'platform' },
+                { x: 1600, y: 650, width: 250, height: 25, type: 'platform' },
+                { x: 2200, y: 630, width: 300, height: 25, type: 'platform' },
                 
-                // Mid-level industrial platforms
-                { x: 150, y: 550, width: 180, height: 25, type: 'platform' },
-                { x: 400, y: 520, width: 220, height: 25, type: 'platform' },
-                { x: 700, y: 550, width: 200, height: 25, type: 'platform' },
-                { x: 1000, y: 500, width: 250, height: 25, type: 'platform' },
-                { x: 1350, y: 530, width: 200, height: 25, type: 'platform' },
-                { x: 1650, y: 520, width: 180, height: 25, type: 'platform' },
-                { x: 1900, y: 550, width: 220, height: 25, type: 'platform' },
-                { x: 2200, y: 500, width: 200, height: 25, type: 'platform' },
-                { x: 2500, y: 530, width: 250, height: 25, type: 'platform' },
+                // Mid-level platforms - significantly reduced
+                { x: 300, y: 520, width: 220, height: 25, type: 'platform' },
+                { x: 900, y: 500, width: 250, height: 25, type: 'platform' },
+                { x: 1500, y: 520, width: 220, height: 25, type: 'platform' },
+                { x: 2100, y: 500, width: 250, height: 25, type: 'platform' },
                 
-                // Upper factory platforms
-                { x: 250, y: 420, width: 150, height: 25, type: 'platform' },
+                // Upper platforms - minimal count for access
                 { x: 500, y: 400, width: 180, height: 25, type: 'platform' },
-                { x: 800, y: 420, width: 160, height: 25, type: 'platform' },
                 { x: 1100, y: 380, width: 200, height: 25, type: 'platform' },
-                { x: 1400, y: 400, width: 170, height: 25, type: 'platform' },
-                { x: 1700, y: 420, width: 150, height: 25, type: 'platform' },
-                { x: 2000, y: 380, width: 180, height: 25, type: 'platform' },
-                { x: 2300, y: 400, width: 160, height: 25, type: 'platform' },
-                { x: 2600, y: 420, width: 200, height: 25, type: 'platform' },
+                { x: 1700, y: 400, width: 180, height: 25, type: 'platform' },
                 
                 // Boss arena platforms - central high platforms
                 { x: 1000, y: 300, width: 600, height: 30, type: 'platform' }, // Main boss platform
@@ -969,26 +956,18 @@ const levelManager = {
                 { x: 1800, y: 250, width: 200, height: 25, type: 'platform' }, // Right approach
                 { x: 1200, y: 200, width: 400, height: 25, type: 'platform' }, // Upper boss platform
                 
-                // Industrial machinery obstacles
-                { x: 350, y: 630, width: 50, height: 40, type: 'obstacle' },
-                { x: 750, y: 610, width: 60, height: 40, type: 'obstacle' },
-                { x: 1150, y: 630, width: 70, height: 40, type: 'obstacle' },
-                { x: 1550, y: 610, width: 50, height: 40, type: 'obstacle' },
-                { x: 2150, y: 630, width: 60, height: 40, type: 'obstacle' },
-                { x: 2550, y: 610, width: 70, height: 40, type: 'obstacle' },
+                // Industrial machinery obstacles - reduced
+                { x: 600, y: 630, width: 60, height: 40, type: 'obstacle' },
+                { x: 1300, y: 610, width: 70, height: 40, type: 'obstacle' },
+                { x: 2000, y: 630, width: 60, height: 40, type: 'obstacle' },
                 
-                // Connecting catwalks and bridges
-                { x: 450, y: 580, width: 80, height: 15, type: 'walkway' },
-                { x: 950, y: 560, width: 100, height: 15, type: 'walkway' },
-                { x: 1300, y: 580, width: 80, height: 15, type: 'walkway' },
-                { x: 1750, y: 560, width: 90, height: 15, type: 'walkway' },
-                { x: 2250, y: 580, width: 100, height: 15, type: 'walkway' },
+                // Essential connecting walkways only
+                { x: 700, y: 580, width: 100, height: 15, type: 'walkway' },
+                { x: 1400, y: 560, width: 100, height: 15, type: 'walkway' },
                 
-                // Elevated supervisor platforms
-                { x: 600, y: 320, width: 120, height: 20, type: 'platform' },
+                // Key supervisor platforms only
                 { x: 950, y: 280, width: 100, height: 20, type: 'platform' },
-                { x: 1650, y: 300, width: 120, height: 20, type: 'platform' },
-                { x: 2200, y: 280, width: 100, height: 20, type: 'platform' }
+                { x: 1650, y: 300, width: 120, height: 20, type: 'platform' }
             ],
             enemySpawns: [
                 // Regular enemies leading to boss
@@ -1013,85 +992,46 @@ const levelManager = {
                 { x: 2050, y: 320, type: 'dumpling' },
                 { x: 2350, y: 340, type: 'noodle_soup' }
             ],
-            exitPosition: { x: 1300, y: 280 }, // Boss arena center
-            victoryCondition: 'defeat_boss'
+            exitPosition: { x: 2800, y: 650 }, // Exit positioned at ground level
+            victoryCondition: 'reach_exit'
         },
         6: {
             name: "Final Showdown",
             theme: "penthouse",
             backgroundColor: "#3a2a1a",
             platforms: [
-                // Penthouse main floor - luxurious base level
-                { x: 0, y: 750, width: 600, height: 50, type: 'ground' },
-                { x: 700, y: 750, width: 800, height: 50, type: 'ground' },
-                { x: 1600, y: 750, width: 600, height: 50, type: 'ground' },
-                { x: 2300, y: 750, width: 700, height: 50, type: 'ground' },
+                // Penthouse main floor - simplified base level
+                { x: 0, y: 750, width: 1000, height: 50, type: 'ground' },
+                { x: 1200, y: 750, width: 1000, height: 50, type: 'ground' },
+                { x: 2400, y: 750, width: 800, height: 50, type: 'ground' },
                 
-                // Executive office platforms - lower tier
-                { x: 100, y: 650, width: 300, height: 25, type: 'platform' },
-                { x: 500, y: 630, width: 400, height: 25, type: 'platform' },
-                { x: 1000, y: 650, width: 350, height: 25, type: 'platform' },
-                { x: 1450, y: 630, width: 300, height: 25, type: 'platform' },
-                { x: 1850, y: 650, width: 400, height: 25, type: 'platform' },
-                { x: 2350, y: 630, width: 350, height: 25, type: 'platform' },
-                { x: 2800, y: 650, width: 200, height: 25, type: 'platform' },
+                // Lower tier - essential platforms only
+                { x: 300, y: 650, width: 400, height: 25, type: 'platform' },
+                { x: 1000, y: 630, width: 500, height: 25, type: 'platform' },
+                { x: 1800, y: 650, width: 400, height: 25, type: 'platform' },
                 
-                // Mezzanine level - mid-tier luxury platforms
-                { x: 200, y: 550, width: 250, height: 25, type: 'platform' },
-                { x: 550, y: 520, width: 300, height: 25, type: 'platform' },
-                { x: 950, y: 540, width: 280, height: 25, type: 'platform' },
-                { x: 1350, y: 520, width: 350, height: 25, type: 'platform' },
-                { x: 1800, y: 540, width: 300, height: 25, type: 'platform' },
-                { x: 2200, y: 520, width: 280, height: 25, type: 'platform' },
-                { x: 2600, y: 540, width: 250, height: 25, type: 'platform' },
+                // Mid-tier - minimal for vertical progression
+                { x: 500, y: 520, width: 300, height: 25, type: 'platform' },
+                { x: 1200, y: 500, width: 400, height: 25, type: 'platform' },
+                { x: 2000, y: 520, width: 300, height: 25, type: 'platform' },
                 
-                // Upper executive platforms
-                { x: 150, y: 420, width: 200, height: 25, type: 'platform' },
-                { x: 450, y: 400, width: 250, height: 25, type: 'platform' },
-                { x: 800, y: 420, width: 220, height: 25, type: 'platform' },
-                { x: 1150, y: 380, width: 300, height: 25, type: 'platform' },
-                { x: 1550, y: 400, width: 280, height: 25, type: 'platform' },
-                { x: 1950, y: 420, width: 250, height: 25, type: 'platform' },
-                { x: 2300, y: 380, width: 220, height: 25, type: 'platform' },
-                { x: 2650, y: 400, width: 200, height: 25, type: 'platform' },
+                // Upper tier - approach to boss arena
+                { x: 700, y: 380, width: 200, height: 25, type: 'platform' },
+                { x: 1400, y: 360, width: 200, height: 25, type: 'platform' },
                 
-                // Penthouse balcony platforms
-                { x: 300, y: 320, width: 180, height: 25, type: 'platform' },
-                { x: 600, y: 300, width: 200, height: 25, type: 'platform' },
-                { x: 900, y: 320, width: 180, height: 25, type: 'platform' },
-                { x: 1200, y: 280, width: 250, height: 25, type: 'platform' },
-                { x: 1550, y: 300, width: 200, height: 25, type: 'platform' },
-                { x: 1850, y: 320, width: 180, height: 25, type: 'platform' },
-                { x: 2150, y: 280, width: 200, height: 25, type: 'platform' },
-                { x: 2450, y: 300, width: 180, height: 25, type: 'platform' },
-                
-                // Ultimate boss arena - center stage platforms
+                // Ultimate boss arena - main stage
                 { x: 800, y: 200, width: 800, height: 35, type: 'platform' }, // Main arena platform
-                { x: 600, y: 150, width: 300, height: 25, type: 'platform' },  // Left VIP platform
-                { x: 1700, y: 150, width: 300, height: 25, type: 'platform' }, // Right VIP platform
                 { x: 1000, y: 100, width: 600, height: 30, type: 'platform' }, // Ultimate throne platform
                 
-                // Sky bridge connections
-                { x: 500, y: 250, width: 100, height: 20, type: 'walkway' },
-                { x: 1100, y: 230, width: 120, height: 20, type: 'walkway' },
-                { x: 1600, y: 250, width: 100, height: 20, type: 'walkway' },
-                { x: 2100, y: 230, width: 120, height: 20, type: 'walkway' },
+                // Minimal connecting elements
+                { x: 950, y: 280, width: 100, height: 20, type: 'walkway' },
                 
-                // Luxury furniture obstacles
-                { x: 250, y: 630, width: 80, height: 40, type: 'obstacle' },
-                { x: 750, y: 610, width: 100, height: 40, type: 'obstacle' },
-                { x: 1200, y: 630, width: 90, height: 40, type: 'obstacle' },
-                { x: 1700, y: 610, width: 80, height: 40, type: 'obstacle' },
-                { x: 2200, y: 630, width: 100, height: 40, type: 'obstacle' },
-                { x: 2700, y: 610, width: 90, height: 40, type: 'obstacle' },
+                // Essential obstacles only
+                { x: 500, y: 630, width: 100, height: 40, type: 'obstacle' },
+                { x: 1700, y: 610, width: 100, height: 40, type: 'obstacle' },
                 
-                // VIP lounge platforms
-                { x: 400, y: 180, width: 150, height: 20, type: 'platform' },
-                { x: 1050, y: 160, width: 200, height: 20, type: 'platform' },
-                { x: 1800, y: 180, width: 150, height: 20, type: 'platform' },
-                
-                // Penthouse roof access
-                { x: 1100, y: 50, width: 400, height: 25, type: 'platform' }
+                // Final access point
+                { x: 1200, y: 50, width: 400, height: 25, type: 'platform' }
             ],
             enemySpawns: [
                 // Elite guards and final boss
@@ -1118,7 +1058,7 @@ const levelManager = {
                 { x: 2500, y: 220, type: 'dumpling' },
                 { x: 1300, y: 20, type: 'noodle_soup' } // Final reward
             ],
-            exitPosition: { x: 1300, y: 80 }, // Throne platform center
+            exitPosition: { x: 2900, y: 80 }, // Move exit far to the right after final boss fight
             victoryCondition: 'defeat_final_boss'
         }
     },
@@ -1150,6 +1090,9 @@ const levelManager = {
         
         this.currentLevel = levelNumber;
         const levelData = this.levelData[levelNumber];
+        
+        // Reset boss spawning flag
+        this.bossSpawned = false;
         
         // Clear existing game objects
         enemies.length = 0;
@@ -1188,8 +1131,15 @@ const levelManager = {
     // Spawn enemies for current level
     spawnLevelEnemies() {
         const levelData = this.levelData[this.currentLevel];
+        this.bossSpawned = false; // Reset boss spawned flag
         levelData.enemySpawns.forEach(spawn => {
-            enemies.push(createEnemy(spawn.type, spawn.x, 0));
+            const enemy = createEnemy(spawn.type, spawn.x, 0);
+            enemies.push(enemy);
+            
+            // Track if we spawned a boss
+            if (spawn.type === 'triad_boss' || spawn.type === 'final_boss') {
+                this.bossSpawned = true;
+            }
         });
     },
     
@@ -1229,11 +1179,19 @@ const levelManager = {
                 return player.x >= levelData.exitPosition.x && 
                        Math.abs(player.y - levelData.exitPosition.y) < 100;
             case 'defeat_boss':
-                // Check if all boss enemies (triad_boss) are defeated
-                return !enemies.some(enemy => enemy.active && enemy.type === 'triad_boss');
+                // Only check for completion if boss was actually spawned
+                if (!this.bossSpawned) {
+                    return false;
+                }
+                const activeBosses = enemies.filter(enemy => enemy.active && enemy.type === 'triad_boss');
+                return activeBosses.length === 0;
             case 'defeat_final_boss':
-                // Check if all final boss enemies are defeated
-                return !enemies.some(enemy => enemy.active && enemy.type === 'final_boss');
+                // Only check for completion if boss was actually spawned
+                if (!this.bossSpawned) {
+                    return false;
+                }
+                const activeFinalBosses = enemies.filter(enemy => enemy.active && enemy.type === 'final_boss');
+                return activeFinalBosses.length === 0;
             default:
                 return false;
         }
@@ -1253,6 +1211,16 @@ function initGame() {
     } catch (error) {
         console.error('Failed to set canvas size:', error);
         return false;
+    }
+    
+    // Load game images
+    try {
+        gameImages.congratsImage.src = 'assets/congrats-image.png';
+        gameImages.congratsImage.onerror = function() {
+            console.warn('Failed to load congrats image, continuing without it');
+        };
+    } catch (error) {
+        console.warn('Error loading images:', error);
     }
     
     // Initialize player position with bounds checking
@@ -1356,6 +1324,9 @@ function gameLoop(currentTime) {
         case 'levelComplete':
             updateLevelCompleteScreen();
             break;
+        case 'congratulations':
+            updateCongratulationsScreen();
+            break;
     }
     
     // Render the game
@@ -1415,16 +1386,31 @@ function update(deltaTime) {
     // Check for level completion
     if (levelManager.checkLevelCompletion()) {
         levelManager.completeLevel();
-        gameState.currentState = 'levelComplete';
         
-        // Stop current music and play victory theme
-        stopBackgroundMusic();
-        setTimeout(() => {
-            startBackgroundMusic('victory_theme');
-        }, 500);
-        
-        playSound('levelComplete');
-        console.log(`Level ${levelManager.currentLevel} completed!`);
+        // Check if this is the final boss level (level 6) being completed
+        if (levelManager.currentLevel === 6) {
+            gameState.currentState = 'congratulations';
+            
+            // Stop current music and play victory theme
+            stopBackgroundMusic();
+            setTimeout(() => {
+                startBackgroundMusic('victory_theme');
+            }, 500);
+            
+            playSound('levelComplete');
+            console.log('FINAL BOSS DEFEATED! Congratulations screen activated!');
+        } else {
+            gameState.currentState = 'levelComplete';
+            
+            // Stop current music and play victory theme
+            stopBackgroundMusic();
+            setTimeout(() => {
+                startBackgroundMusic('victory_theme');
+            }, 500);
+            
+            playSound('levelComplete');
+            console.log(`Level ${levelManager.currentLevel} completed!`);
+        }
     }
     
     // Check collisions
@@ -1584,6 +1570,29 @@ function updateLevelCompleteScreen() {
         } else {
             goToTitleScreen();
         }
+        input.click = false;
+    }
+}
+
+// Update congratulations screen
+function updateCongratulationsScreen() {
+    // Handle ESC to go back to title
+    if (input.escape) {
+        goToTitleScreen();
+        input.escape = false;
+        return;
+    }
+    
+    // Handle ENTER to go to title screen
+    if (input.enter) {
+        goToTitleScreen();
+        input.enter = false;
+        return;
+    }
+    
+    // Handle click to go to title screen
+    if (input.click) {
+        goToTitleScreen();
         input.click = false;
     }
 }
@@ -1901,8 +1910,8 @@ function updatePlayer(deltaTime) {
     
     // Prevent player from falling through the world
     if (player.y > GAME_CONFIG.WORLD_HEIGHT) {
-        console.warn('Player fell through world, respawning');
-        player.health = 0; // Trigger death/respawn
+        console.warn('Player fell off the screen, losing a life');
+        killPlayer(); // Properly trigger death with life loss
     }
     
     // Update emotional state based on game conditions - Milestone 2 enhancement
@@ -2939,8 +2948,14 @@ function updateEnemies(deltaTime) {
     for (let i = enemies.length - 1; i >= 0; i--) {
         const enemy = enemies[i];
         
-        if (!enemy.active) {
+        // Don't remove boss enemies from array even if inactive (needed for level completion)
+        if (!enemy.active && enemy.type !== 'triad_boss' && enemy.type !== 'final_boss') {
             enemies.splice(i, 1);
+            continue;
+        }
+        
+        // Skip updates for inactive enemies (but keep them in array if they're bosses)
+        if (!enemy.active) {
             continue;
         }
         
@@ -2949,10 +2964,7 @@ function updateEnemies(deltaTime) {
             enemy.attackTimer -= deltaTime;
         }
         
-        if (enemy.stunTimer > 0) {
-            enemy.stunTimer -= deltaTime;
-            continue; // Skip AI updates while stunned
-        }
+        // Removed stun timer logic completely - enemies always keep moving
         
         // Update AI
         updateEnemyAI(enemy, deltaTime);
@@ -2960,11 +2972,39 @@ function updateEnemies(deltaTime) {
         // Update animation
         updateEnemyAnimation(enemy, deltaTime);
         
-        // Keep enemy on ground
-        enemy.y = enemy.type === 'car' ? GAME_CONFIG.GROUND_Y - 60 : GAME_CONFIG.GROUND_Y - 50;
+        // Keep enemy on ground (different heights for different enemy types)
+        if (enemy.type === 'car') {
+            enemy.y = GAME_CONFIG.GROUND_Y - 60;
+        } else if (enemy.type === 'motorcycle') {
+            enemy.y = GAME_CONFIG.GROUND_Y - 50;
+        } else if (enemy.type === 'sports_car') {
+            enemy.y = GAME_CONFIG.GROUND_Y - 55;
+        } else if (enemy.type === 'delivery_truck') {
+            enemy.y = GAME_CONFIG.GROUND_Y - 80;
+        } else if (enemy.type === 'police_car') {
+            enemy.y = GAME_CONFIG.GROUND_Y - 65;
+        } else if (enemy.type === 'knife_thug') {
+            enemy.y = GAME_CONFIG.GROUND_Y - 102; // Bring up from -72
+        } else if (enemy.type === 'gun_thug') {
+            enemy.y = GAME_CONFIG.GROUND_Y - 102; // Bring up from -72
+        } else if (enemy.type === 'heavy_gangster') {
+            enemy.y = GAME_CONFIG.GROUND_Y - 120; // Bring up from -80
+        } else if (enemy.type === 'triad_boss') {
+            enemy.y = GAME_CONFIG.GROUND_Y - 112; // Bring up from -96
+        } else if (enemy.type === 'final_boss') {
+            enemy.y = GAME_CONFIG.GROUND_Y - 366; // 3x larger positioning
+        } else if (enemy.type === 'helicopter') {
+            // Don't reset helicopter Y - it uses custom bobbing motion
+        } else if (enemy.type === 'boat') {
+            // Don't reset boat Y - it uses custom wave motion
+        } else {
+            // Default for any other enemy types
+            enemy.y = GAME_CONFIG.GROUND_Y - 50;
+        }
         
-        // Remove enemies that are too far off screen
-        if (enemy.x < -200 || enemy.x > canvas.width + 200) {
+        // Remove enemies that are too far off screen (but never remove boss enemies)
+        if ((enemy.x < -200 || enemy.x > canvas.width + 200) && 
+            enemy.type !== 'triad_boss' && enemy.type !== 'final_boss') {
             enemy.active = false;
         }
     }
@@ -3151,6 +3191,8 @@ function killPlayer() {
     
     if (player.lives <= 0) {
         gameOver();
+    } else {
+        console.log(`Life lost! Lives remaining: ${player.lives}`);
     }
 }
 
@@ -3189,7 +3231,7 @@ function gameOver() {
     }, 500);
     
     playSound('gameOver');
-    console.log('GAME OVER! Final Score:', gameStats.score);
+    console.log('GAME OVER! All lives lost. Final Score:', gameStats.score);
 }
 
 // Check all collision types
@@ -3221,7 +3263,7 @@ function checkProjectileEnemyCollisions() {
             if (isColliding(projectile, enemy)) {
                 // Damage enemy
                 enemy.health--;
-                enemy.stunTimer = enemy.stunDuration;
+                // Removed stun - enemies keep moving when shot
                 playSound('enemyHit'); // Add enemy hit sound effect
                 
                 // Remove projectile
@@ -3279,7 +3321,7 @@ function checkPunchEnemyCollisions() {
             if (isColliding(punchRect, enemy)) {
                 // Damage enemy
                 enemy.health--;
-                enemy.stunTimer = enemy.stunDuration;
+                // Removed stun - enemies keep moving when punched
                 playSound('enemyHit'); // Add punch hit sound effect
                 
                 // Push enemy away
@@ -3559,6 +3601,10 @@ function render() {
             renderGameplay();
             renderLevelCompleteOverlay();
             break;
+        case 'congratulations':
+            renderGameplay();
+            renderCongratulationsOverlay();
+            break;
     }
     
     // Always draw debug info if enabled
@@ -3631,12 +3677,12 @@ function renderTitleScreen() {
     ctx.shadowBlur = 5;
     ctx.font = '16px Courier New';
     ctx.fillStyle = '#cccccc';
-    ctx.fillText('CONTROLS:', canvas.width / 2 - 50, canvas.height / 2 + 140);
-    ctx.fillText('Arrow Keys: Move', canvas.width / 2 - 70, canvas.height / 2 + 160);
-    ctx.fillText('Spacebar: Jump', canvas.width / 2 - 65, canvas.height / 2 + 180);
-    ctx.fillText('Z: Attack', canvas.width / 2 - 40, canvas.height / 2 + 200);
-    ctx.fillText('X: Switch Weapon', canvas.width / 2 - 75, canvas.height / 2 + 220);
-    ctx.fillText('P: Pause', canvas.width / 2 - 35, canvas.height / 2 + 240);
+    ctx.fillText('CONTROLS:', canvas.width / 2 - 50, canvas.height / 2 + 120);
+    ctx.fillText('Arrow Keys: Move', canvas.width / 2 - 70, canvas.height / 2 + 140);
+    ctx.fillText('Spacebar: Jump', canvas.width / 2 - 65, canvas.height / 2 + 160);
+    ctx.fillText('Z: Attack', canvas.width / 2 - 40, canvas.height / 2 + 180);
+    ctx.fillText('X: Switch Weapon', canvas.width / 2 - 75, canvas.height / 2 + 200);
+    ctx.fillText('P: Pause', canvas.width / 2 - 35, canvas.height / 2 + 220);
     
     // Audio controls
     ctx.fillStyle = '#ffff99';
@@ -3851,6 +3897,92 @@ function renderLevelCompleteOverlay() {
     ctx.font = '14px Courier New';
     ctx.fillStyle = '#cccccc';
     ctx.fillText('Press ESC for title screen, ENTER to continue', canvas.width / 2 - 150, canvas.height / 2 + 120);
+    
+    ctx.shadowBlur = 0;
+}
+
+// Render congratulations overlay
+function renderCongratulationsOverlay() {
+    // Semi-transparent overlay with gradient for epic effect
+    const bgGradient = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 0, canvas.width / 2, canvas.height / 2, canvas.width);
+    bgGradient.addColorStop(0, 'rgba(255, 215, 0, 0.8)'); // Gold center
+    bgGradient.addColorStop(0.5, 'rgba(255, 140, 0, 0.6)'); // Orange middle
+    bgGradient.addColorStop(1, 'rgba(0, 0, 0, 0.9)'); // Dark edges
+    ctx.fillStyle = bgGradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw congratulations image if loaded
+    if (gameImages.congratsImage.complete && gameImages.congratsImage.naturalWidth !== 0) {
+        // Maintain original aspect ratio
+        const originalWidth = gameImages.congratsImage.naturalWidth;
+        const originalHeight = gameImages.congratsImage.naturalHeight;
+        const aspectRatio = originalHeight / originalWidth;
+        
+        const imgWidth = 400; // Desired width
+        const imgHeight = imgWidth * aspectRatio; // Maintain aspect ratio
+        const imgX = (canvas.width - imgWidth) / 2;
+        const imgY = 20; // Position at top of screen with small margin
+        
+        ctx.drawImage(gameImages.congratsImage, imgX, imgY, imgWidth, imgHeight);
+    }
+    
+    // Animated confetti effect
+    const time = Date.now() * 0.001;
+    ctx.fillStyle = '#ffff00';
+    for (let i = 0; i < 50; i++) {
+        const x = (canvas.width / 2) + Math.sin(time + i * 0.5) * (200 + i * 10);
+        const y = (canvas.height / 2) + Math.cos(time + i * 0.3) * (150 + i * 5);
+        const size = 3 + Math.sin(time * 2 + i) * 2;
+        ctx.fillRect(x, y, size, size);
+    }
+    
+    // Main congratulations text with special effects (moved down)
+    ctx.font = 'bold 64px Courier New';
+    ctx.fillStyle = '#ffd700';
+    ctx.shadowColor = '#ffd700';
+    ctx.shadowBlur = 20;
+    ctx.fillText('CONGRATULATIONS!', canvas.width / 2 - 280, canvas.height / 2 + 20);
+    
+    // Subtitle (moved down)
+    ctx.font = 'bold 32px Courier New';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur = 15;
+    ctx.fillText('FINAL BOSS DEFEATED!', canvas.width / 2 - 180, canvas.height / 2 + 80);
+    
+    // Game complete message (moved down)
+    ctx.font = 'bold 28px Courier New';
+    ctx.fillStyle = '#00ff00';
+    ctx.shadowColor = '#00ff00';
+    ctx.shadowBlur = 12;
+    ctx.fillText('YOU HAVE SAVED HONG KONG!', canvas.width / 2 - 200, canvas.height / 2 + 130);
+    
+    // Final stats (moved down)
+    ctx.font = '20px Courier New';
+    ctx.fillStyle = '#ffff99';
+    ctx.shadowBlur = 8;
+    ctx.fillText(`Final Score: ${gameStats.score}`, canvas.width / 2 - 90, canvas.height / 2 + 180);
+    ctx.fillText(`Total Enemies Defeated: ${gameStats.enemiesDefeated}`, canvas.width / 2 - 140, canvas.height / 2 + 210);
+    
+    // Hero message (moved down)
+    ctx.font = '18px Courier New';
+    ctx.fillStyle = '#87ceeb';
+    ctx.shadowColor = '#87ceeb';
+    ctx.shadowBlur = 10;
+    ctx.fillText('Detective Hedge Cop - Hero of Hong Kong!', canvas.width / 2 - 180, canvas.height / 2 + 250);
+    
+    // Thank you message (moved down)
+    ctx.font = '16px Courier New';
+    ctx.fillStyle = '#ffa500';
+    ctx.shadowColor = '#ffa500';
+    ctx.shadowBlur = 6;
+    ctx.fillText('Thank you for playing!', canvas.width / 2 - 90, canvas.height / 2 + 280);
+    
+    // Instructions (moved down)
+    ctx.font = '14px Courier New';
+    ctx.fillStyle = '#cccccc';
+    ctx.shadowBlur = 3;
+    ctx.fillText('Press ESC or ENTER to return to title screen', canvas.width / 2 - 160, canvas.height / 2 + 320);
     
     ctx.shadowBlur = 0;
 }
@@ -4498,12 +4630,30 @@ function drawEnemy(enemy) {
         
         ctx.save();
         
-        // Apply stun effect
-        if (enemy.stunTimer > 0) {
-            ctx.globalAlpha = 0.7;
-            // Flash red when stunned
-            ctx.fillStyle = '#ff6666';
-            ctx.fillRect(screenX - 5, screenY - 5, enemy.width + 10, enemy.height + 10);
+        // Removed stun visual effect - enemies don't freeze anymore
+        
+        // Draw boss UI elements BEFORE applying flip transformation (so they don't get mirrored)
+        if ((enemy.type === 'triad_boss' || enemy.type === 'final_boss') && enemy.health < enemy.maxHealth) {
+            // Health bar background
+            ctx.fillStyle = '#660000';
+            if (enemy.type === 'final_boss') {
+                ctx.fillRect(screenX + 4 * 3, screenY - 12 * 3, 56 * 3, 6 * 3);
+                // Health bar
+                ctx.fillStyle = '#ff0000';
+                const healthPercent = enemy.health / enemy.maxHealth;
+                ctx.fillRect(screenX + 4 * 3, screenY - 12 * 3, 56 * 3 * healthPercent, 6 * 3);
+                
+                // Boss name (larger font)
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `${8 * 3}px monospace`;
+                ctx.fillText('FINAL BOSS', screenX + 8 * 3, screenY - 16 * 3);
+            } else if (enemy.type === 'triad_boss') {
+                ctx.fillRect(screenX + 8, screenY - 8, 48, 4);
+                // Health bar
+                ctx.fillStyle = '#ff0000';
+                const healthPercent = enemy.health / enemy.maxHealth;
+                ctx.fillRect(screenX + 8, screenY - 8, 48 * healthPercent, 4);
+            }
         }
         
         // Flip horizontally based on facing direction
@@ -4522,6 +4672,22 @@ function drawEnemy(enemy) {
             drawHelicopterEnemy(0, screenY, enemy);
         } else if (enemy.type === 'boat') {
             drawBoatEnemy(0, screenY, enemy);
+        } else if (enemy.type === 'knife_thug') {
+            drawKnifeThugEnemy(0, screenY, enemy);
+        } else if (enemy.type === 'gun_thug') {
+            drawGunThugEnemy(0, screenY, enemy);
+        } else if (enemy.type === 'heavy_gangster') {
+            drawHeavyGangsterEnemy(0, screenY, enemy);
+        } else if (enemy.type === 'triad_boss') {
+            drawTriadBossEnemy(0, screenY, enemy);
+        } else if (enemy.type === 'final_boss') {
+            drawFinalBossEnemy(0, screenY, enemy);
+        } else if (enemy.type === 'sports_car') {
+            drawSportsCarEnemy(0, screenY, enemy);
+        } else if (enemy.type === 'delivery_truck') {
+            drawDeliveryTruckEnemy(0, screenY, enemy);
+        } else if (enemy.type === 'police_car') {
+            drawPoliceCarEnemy(0, screenY, enemy);
         }
         
         ctx.restore();
@@ -4992,6 +5158,395 @@ function drawBoatEnemy(x, y, enemy) {
     // Flag
     ctx.fillStyle = '#cc0000';
     ctx.fillRect(x + 52, y - 2, 8, 5);
+}
+
+// Draw knife thug enemy - Hong Kong triad style
+function drawKnifeThugEnemy(x, y, enemy) {
+    // Body (black clothing)
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(x + 16, y + 24, 32, 48);
+    
+    // Arms
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fillRect(x + 8, y + 28, 12, 32);
+    ctx.fillRect(x + 48, y + 28, 12, 32);
+    
+    // Legs
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(x + 20, y + 72, 12, 24);
+    ctx.fillRect(x + 36, y + 72, 12, 24);
+    
+    // Head
+    ctx.fillStyle = '#d2b48c';
+    ctx.fillRect(x + 20, y + 8, 24, 20);
+    
+    // Hair (black)
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 18, y + 6, 28, 8);
+    
+    // Eyes
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x + 22, y + 14, 4, 3);
+    ctx.fillRect(x + 30, y + 14, 4, 3);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 23, y + 15, 2, 1);
+    ctx.fillRect(x + 31, y + 15, 2, 1);
+    
+    // Knife (if attacking)
+    if (enemy.isAttacking || enemy.attackTimer > 0) {
+        ctx.fillStyle = '#c0c0c0'; // Silver blade
+        ctx.fillRect(x + (enemy.facingRight ? 52 : 4), y + 36, 8, 2);
+        ctx.fillRect(x + (enemy.facingRight ? 60 : -4), y + 35, 4, 4);
+        ctx.fillStyle = '#8b4513'; // Brown handle
+        ctx.fillRect(x + (enemy.facingRight ? 48 : 8), y + 37, 4, 6);
+    }
+    
+    // Feet
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 18, y + 96, 14, 6);
+    ctx.fillRect(x + 34, y + 96, 14, 6);
+}
+
+// Draw gun thug enemy - Hong Kong gangster style
+function drawGunThugEnemy(x, y, enemy) {
+    // Body (dark suit)
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fillRect(x + 16, y + 24, 32, 48);
+    
+    // Arms
+    ctx.fillStyle = '#3a3a3a';
+    ctx.fillRect(x + 8, y + 28, 12, 32);
+    ctx.fillRect(x + 48, y + 28, 12, 32);
+    
+    // Legs
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(x + 20, y + 72, 12, 24);
+    ctx.fillRect(x + 36, y + 72, 12, 24);
+    
+    // Head
+    ctx.fillStyle = '#d2b48c';
+    ctx.fillRect(x + 20, y + 8, 24, 20);
+    
+    // Hair (black)
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 18, y + 6, 28, 8);
+    
+    // Eyes
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x + 22, y + 14, 4, 3);
+    ctx.fillRect(x + 30, y + 14, 4, 3);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 23, y + 15, 2, 1);
+    ctx.fillRect(x + 31, y + 15, 2, 1);
+    
+    // Gun (pistol)
+    ctx.fillStyle = '#1a1a1a'; // Black gun
+    ctx.fillRect(x + (enemy.facingRight ? 50 : 6), y + 34, 10, 4);
+    ctx.fillRect(x + (enemy.facingRight ? 48 : 8), y + 36, 6, 8);
+    
+    // Muzzle flash (if shooting)
+    if (enemy.isAttacking || enemy.attackTimer > 0) {
+        ctx.fillStyle = '#ffff00';
+        ctx.fillRect(x + (enemy.facingRight ? 60 : -2), y + 35, 4, 2);
+        ctx.fillStyle = '#ff8800';
+        ctx.fillRect(x + (enemy.facingRight ? 58 : 0), y + 36, 2, 1);
+    }
+    
+    // Feet
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 18, y + 96, 14, 6);
+    ctx.fillRect(x + 34, y + 96, 14, 6);
+}
+
+// Draw heavy gangster enemy - Big enforcer style
+function drawHeavyGangsterEnemy(x, y, enemy) {
+    // Larger body (heavy build)
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fillRect(x + 12, y + 20, 40, 60);
+    
+    // Large arms
+    ctx.fillStyle = '#3a3a3a';
+    ctx.fillRect(x + 4, y + 24, 16, 40);
+    ctx.fillRect(x + 52, y + 24, 16, 40);
+    
+    // Thick legs
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(x + 18, y + 80, 16, 32);
+    ctx.fillRect(x + 38, y + 80, 16, 32);
+    
+    // Large head
+    ctx.fillStyle = '#d2b48c';
+    ctx.fillRect(x + 18, y + 4, 28, 24);
+    
+    // Bald head with scar
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 16, y + 2, 32, 6);
+    // Scar
+    ctx.fillStyle = '#cc0000';
+    ctx.fillRect(x + 26, y + 8, 2, 12);
+    
+    // Angry eyes
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(x + 22, y + 12, 6, 4);
+    ctx.fillRect(x + 32, y + 12, 6, 4);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 24, y + 13, 2, 2);
+    ctx.fillRect(x + 34, y + 13, 2, 2);
+    
+    // Large weapon (baseball bat or club)
+    ctx.fillStyle = '#8b4513'; // Brown bat
+    ctx.fillRect(x + (enemy.facingRight ? 56 : 0), y + 12, 4, 32);
+    ctx.fillRect(x + (enemy.facingRight ? 54 : -2), y + 44, 8, 4);
+    
+    // Heavy boots
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 16, y + 112, 18, 8);
+    ctx.fillRect(x + 36, y + 112, 18, 8);
+}
+
+// Draw triad boss enemy - Powerful crime lord
+function drawTriadBossEnemy(x, y, enemy) {
+    // Expensive suit body
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(x + 14, y + 20, 36, 56);
+    
+    // Gold trim on suit
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(x + 14, y + 20, 36, 2);
+    ctx.fillRect(x + 14, y + 74, 36, 2);
+    
+    // Arms in expensive suit
+    ctx.fillStyle = '#2a2a3e';
+    ctx.fillRect(x + 6, y + 24, 14, 36);
+    ctx.fillRect(x + 50, y + 24, 14, 36);
+    
+    // Legs in expensive pants
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(x + 18, y + 76, 14, 28);
+    ctx.fillRect(x + 36, y + 76, 14, 28);
+    
+    // Distinguished head
+    ctx.fillStyle = '#d2b48c';
+    ctx.fillRect(x + 18, y + 4, 28, 24);
+    
+    // Slicked back hair
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 16, y + 2, 32, 8);
+    
+    // Sunglasses
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 20, y + 12, 24, 6);
+    ctx.fillStyle = '#333333';
+    ctx.fillRect(x + 22, y + 13, 8, 4);
+    ctx.fillRect(x + 34, y + 13, 8, 4);
+    
+    // Cigar
+    ctx.fillStyle = '#8b4513';
+    ctx.fillRect(x + 46, y + 18, 8, 2);
+    ctx.fillStyle = '#ff4500';
+    ctx.fillRect(x + 54, y + 18, 2, 2);
+    
+    // Dual pistols
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(x + 4, y + 36, 10, 4);
+    ctx.fillRect(x + 56, y + 36, 10, 4);
+    
+    // Gold details on guns
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(x + 6, y + 37, 6, 2);
+    ctx.fillRect(x + 58, y + 37, 6, 2);
+    
+    // Expensive shoes
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 16, y + 104, 16, 8);
+    ctx.fillRect(x + 36, y + 104, 16, 8);
+    
+    // Health indicator moved to main drawing function to avoid flipping
+}
+
+// Draw final boss enemy - Ultimate crime lord (3x scale)
+function drawFinalBossEnemy(x, y, enemy) {
+    // Scale factor for final boss
+    const scale = 3;
+    
+    // Luxurious suit body (larger)
+    ctx.fillStyle = '#0a0a1a';
+    ctx.fillRect(x + 12 * scale, y + 16 * scale, 40 * scale, 64 * scale);
+    
+    // Platinum trim
+    ctx.fillStyle = '#e5e4e2';
+    ctx.fillRect(x + 12 * scale, y + 16 * scale, 40 * scale, 3 * scale);
+    ctx.fillRect(x + 12 * scale, y + 77 * scale, 40 * scale, 3 * scale);
+    
+    // Large powerful arms
+    ctx.fillStyle = '#1a1a2a';
+    ctx.fillRect(x + 4 * scale, y + 20 * scale, 16 * scale, 40 * scale);
+    ctx.fillRect(x + 52 * scale, y + 20 * scale, 16 * scale, 40 * scale);
+    
+    // Imposing legs
+    ctx.fillStyle = '#0a0a1a';
+    ctx.fillRect(x + 16 * scale, y + 80 * scale, 16 * scale, 32 * scale);
+    ctx.fillRect(x + 36 * scale, y + 80 * scale, 16 * scale, 32 * scale);
+    
+    // Commanding head
+    ctx.fillStyle = '#d2b48c';
+    ctx.fillRect(x + 16 * scale, y + 0 * scale, 32 * scale, 28 * scale);
+    
+    // Distinguished grey hair
+    ctx.fillStyle = '#666666';
+    ctx.fillRect(x + 14 * scale, y + -2 * scale, 36 * scale, 10 * scale);
+    
+    // High-tech visor
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(x + 18 * scale, y + 8 * scale, 28 * scale, 8 * scale);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 20 * scale, y + 10 * scale, 24 * scale, 4 * scale);
+    
+    // Power gauntlets
+    ctx.fillStyle = '#4a4a4a';
+    ctx.fillRect(x + 2 * scale, y + 32 * scale, 12 * scale, 16 * scale);
+    ctx.fillRect(x + 54 * scale, y + 32 * scale, 12 * scale, 16 * scale);
+    
+    // Energy effects on gauntlets
+    ctx.fillStyle = '#00ffff';
+    ctx.fillRect(x + 4 * scale, y + 34 * scale, 8 * scale, 2 * scale);
+    ctx.fillRect(x + 56 * scale, y + 34 * scale, 8 * scale, 2 * scale);
+    ctx.fillRect(x + 4 * scale, y + 42 * scale, 8 * scale, 2 * scale);
+    ctx.fillRect(x + 56 * scale, y + 42 * scale, 8 * scale, 2 * scale);
+    
+    // Premium footwear
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x + 14 * scale, y + 112 * scale, 18 * scale, 10 * scale);
+    ctx.fillRect(x + 36 * scale, y + 112 * scale, 18 * scale, 10 * scale);
+    
+    // Cape effect
+    ctx.fillStyle = '#2a0a0a';
+    ctx.fillRect(x + 8 * scale, y + 20 * scale, 6 * scale, 60 * scale);
+    ctx.fillRect(x + 54 * scale, y + 20 * scale, 6 * scale, 60 * scale);
+    
+    // Health indicator moved to main drawing function to avoid flipping
+}
+
+// Draw sports car enemy - Fast pursuit vehicle
+function drawSportsCarEnemy(x, y, enemy) {
+    // Sleek sports car body
+    ctx.fillStyle = '#ff4500';
+    ctx.fillRect(x + 6, y + 20, 128, 40);
+    
+    // Aerodynamic roof
+    ctx.fillStyle = '#cc3300';
+    ctx.fillRect(x + 20, y + 10, 100, 20);
+    
+    // Racing stripes
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x + 66, y + 10, 4, 50);
+    ctx.fillRect(x + 74, y + 10, 4, 50);
+    
+    // Sports wheels
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(x + 12, y + 50, 20, 20);
+    ctx.fillRect(x + 108, y + 50, 20, 20);
+    
+    // Chrome rims
+    ctx.fillStyle = '#c0c0c0';
+    ctx.fillRect(x + 16, y + 54, 12, 12);
+    ctx.fillRect(x + 112, y + 54, 12, 12);
+    
+    // Headlights
+    ctx.fillStyle = '#ffff00';
+    ctx.fillRect(x + 2, y + 28, 6, 8);
+    
+    // Tail lights
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(x + 132, y + 28, 6, 8);
+}
+
+// Draw delivery truck enemy - Heavy cargo vehicle
+function drawDeliveryTruckEnemy(x, y, enemy) {
+    // Large truck body
+    ctx.fillStyle = '#8b4513';
+    ctx.fillRect(x + 8, y + 12, 144, 68);
+    
+    // Truck cab
+    ctx.fillStyle = '#654321';
+    ctx.fillRect(x + 8, y + 20, 32, 48);
+    
+    // Cargo area
+    ctx.fillStyle = '#a0522d';
+    ctx.fillRect(x + 44, y + 12, 108, 68);
+    
+    // Large wheels
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(x + 16, y + 70, 24, 24);
+    ctx.fillRect(x + 128, y + 70, 24, 24);
+    
+    // Heavy duty rims
+    ctx.fillStyle = '#666666';
+    ctx.fillRect(x + 20, y + 74, 16, 16);
+    ctx.fillRect(x + 132, y + 74, 16, 16);
+    
+    // Windshield
+    ctx.fillStyle = '#4a4a4a';
+    ctx.fillRect(x + 12, y + 24, 24, 16);
+    
+    // Company logo on side
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x + 60, y + 30, 60, 20);
+    ctx.fillStyle = '#000000';
+    ctx.font = '6px monospace';
+    ctx.fillText('DELIVERY', x + 70, y + 42);
+}
+
+// Draw police car enemy - Law enforcement vehicle
+function drawPoliceCarEnemy(x, y, enemy) {
+    // Police car body
+    ctx.fillStyle = '#000080';
+    ctx.fillRect(x + 8, y + 18, 114, 44);
+    
+    // Police markings (white sections)
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x + 8, y + 18, 114, 8);
+    ctx.fillRect(x + 8, y + 54, 114, 8);
+    
+    // Car roof
+    ctx.fillStyle = '#000066';
+    ctx.fillRect(x + 22, y + 8, 80, 22);
+    
+    // Windshield
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(x + 26, y + 10, 72, 18);
+    
+    // Police light bar
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(x + 40, y + 4, 12, 6);
+    ctx.fillStyle = '#0000ff';
+    ctx.fillRect(x + 56, y + 4, 12, 6);
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(x + 72, y + 4, 12, 6);
+    
+    // Police wheels
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(x + 12, y + 52, 18, 18);
+    ctx.fillRect(x + 100, y + 52, 18, 18);
+    
+    // Hub caps
+    ctx.fillStyle = '#c0c0c0';
+    ctx.fillRect(x + 15, y + 55, 12, 12);
+    ctx.fillRect(x + 103, y + 55, 12, 12);
+    
+    // POLICE text
+    ctx.fillStyle = '#000000';
+    ctx.font = '8px monospace';
+    ctx.fillText('POLICE', x + 50, y + 40);
+    
+    // Siren effect (if in pursuit)
+    if (enemy.pursuitMode) {
+        const flashColor = Math.floor(enemy.sirenTimer * 10) % 2 === 0 ? '#ff0000' : '#0000ff';
+        ctx.fillStyle = flashColor;
+        ctx.globalAlpha = 0.8;
+        ctx.fillRect(x + 40, y + 2, 40, 4);
+        ctx.globalAlpha = 1.0;
+    }
 }
 
 // Draw all collectibles
@@ -5583,6 +6138,9 @@ function handleMouseClick(event) {
                 playSound('menuConfirm');
                 break;
             case 'levelComplete':
+                playSound('menuConfirm');
+                break;
+            case 'congratulations':
                 playSound('menuConfirm');
                 break;
             case 'gameOver':
