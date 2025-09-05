@@ -102,6 +102,13 @@ const gameImages = {
     congratsImage: new Image()
 };
 
+// Congratulations music
+const congratsMusic = {
+    audio: null,
+    initialized: false,
+    isPlaying: false
+};
+
 // Game stats
 const gameStats = {
     isGameOver: false,
@@ -1198,6 +1205,75 @@ const levelManager = {
     }
 };
 
+// Initialize congratulations music
+function initCongratulationsMusic() {
+    if (congratsMusic.initialized) {
+        return; // Already initialized
+    }
+    
+    try {
+        congratsMusic.audio = new Audio();
+        congratsMusic.audio.src = 'assets/Neon City Blues.mp3';
+        congratsMusic.audio.loop = false; // Don't loop - play once for celebration
+        congratsMusic.audio.volume = 0.7; // Set a nice volume level
+        congratsMusic.audio.preload = 'auto';
+        
+        // Add event listeners
+        congratsMusic.audio.addEventListener('canplaythrough', () => {
+            console.log('Congratulations music loaded successfully');
+        });
+        
+        congratsMusic.audio.addEventListener('error', (e) => {
+            console.warn('Failed to load congratulations music:', e);
+        });
+        
+        congratsMusic.audio.addEventListener('ended', () => {
+            congratsMusic.isPlaying = false;
+            console.log('Congratulations music finished playing');
+        });
+        
+        congratsMusic.initialized = true;
+        
+    } catch (error) {
+        console.error('Error initializing congratulations music:', error);
+    }
+}
+
+// Play congratulations music
+function playCongratulationsMusic() {
+    if (!congratsMusic.initialized || !congratsMusic.audio) {
+        console.warn('Congratulations music not initialized');
+        return;
+    }
+    
+    try {
+        // Reset to beginning and play
+        congratsMusic.audio.currentTime = 0;
+        const playPromise = congratsMusic.audio.play();
+        
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                congratsMusic.isPlaying = true;
+                console.log('Congratulations music started playing');
+            }).catch(error => {
+                console.warn('Failed to play congratulations music:', error);
+            });
+        }
+    } catch (error) {
+        console.error('Error playing congratulations music:', error);
+    }
+}
+
+// Stop congratulations music
+function stopCongratulationsMusic() {
+    if (congratsMusic.audio && congratsMusic.isPlaying) {
+        congratsMusic.audio.pause();
+        congratsMusic.audio.currentTime = 0;
+        congratsMusic.isPlaying = false;
+        console.log('Congratulations music stopped');
+    }
+}
+
 // Initialize the game
 function initGame() {
     if (GAME_CONFIG.DEBUG_MODE) {
@@ -1252,6 +1328,14 @@ function initGame() {
         console.log('✅ Level manager initialized with saved progress');
     } catch (error) {
         console.warn('Failed to load level progress, using defaults:', error);
+    }
+    
+    // Initialize congratulations music
+    try {
+        initCongratulationsMusic();
+        console.log('✅ Congratulations music initialized');
+    } catch (error) {
+        console.warn('Failed to initialize congratulations music:', error);
     }
     
     // Start in title screen mode
@@ -1391,10 +1475,10 @@ function update(deltaTime) {
         if (levelManager.currentLevel === 6) {
             gameState.currentState = 'congratulations';
             
-            // Stop current music and play victory theme
+            // Stop current music and play congratulations music
             stopBackgroundMusic();
             setTimeout(() => {
-                startBackgroundMusic('victory_theme');
+                playCongratulationsMusic();
             }, 500);
             
             playSound('levelComplete');
@@ -1635,6 +1719,9 @@ function goToLevelSelection() {
 function goToTitleScreen() {
     gameState.currentState = 'title';
     gameState.titleClickReady = true;
+    
+    // Stop congratulations music if playing
+    stopCongratulationsMusic();
     
     // Start title music
     setTimeout(() => {
