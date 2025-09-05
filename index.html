@@ -170,6 +170,28 @@
                 playIcon.textContent = '▶️';
             });
         });
+
+        // Handle tab visibility change to pause/resume music
+        let wasPausedBeforeHidden = false;
+
+        document.addEventListener('visibilitychange', function() {
+            const backgroundMusic = document.getElementById('background-music');
+            
+            if (document.hidden) {
+                // Tab is no longer visible
+                if (!backgroundMusic.paused) {
+                    wasPausedBeforeHidden = false;
+                    backgroundMusic.pause();
+                } else {
+                    wasPausedBeforeHidden = true;
+                }
+            } else {
+                // Tab is visible again
+                if (!wasPausedBeforeHidden) {
+                    backgroundMusic.play();
+                }
+            }
+        });
     </script>
 </body>
 </html>
