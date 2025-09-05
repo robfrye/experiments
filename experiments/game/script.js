@@ -99,7 +99,8 @@ const collectibles = [];
 
 // Game images
 const gameImages = {
-    congratsImage: new Image()
+    congratsImage: new Image(),
+    titleBackground: new Image()
 };
 
 // Congratulations music
@@ -1294,6 +1295,11 @@ function initGame() {
         gameImages.congratsImage.src = 'assets/congrats-image.png';
         gameImages.congratsImage.onerror = function() {
             console.warn('Failed to load congrats image, continuing without it');
+        };
+        
+        gameImages.titleBackground.src = 'assets/title-screen.png';
+        gameImages.titleBackground.onerror = function() {
+            console.warn('Failed to load title background image, using default background');
         };
     } catch (error) {
         console.warn('Error loading images:', error);
@@ -3726,15 +3732,40 @@ function renderGameplay() {
 
 // Render title screen
 function renderTitleScreen() {
-    // Title background with Hong Kong skyline silhouette
-    ctx.fillStyle = '#001122';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Simple skyline silhouette
-    ctx.fillStyle = '#000000';
-    for (let i = 0; i < canvas.width; i += 40) {
-        const buildingHeight = Math.random() * 200 + 100;
-        ctx.fillRect(i, canvas.height - buildingHeight, 38, buildingHeight);
+    // Draw title background image if loaded, otherwise use fallback
+    if (gameImages.titleBackground.complete && gameImages.titleBackground.naturalWidth !== 0) {
+        // Calculate aspect ratio and draw image to fit screen while preserving aspect ratio
+        const imageAspect = gameImages.titleBackground.naturalWidth / gameImages.titleBackground.naturalHeight;
+        const canvasAspect = canvas.width / canvas.height;
+        
+        let drawWidth, drawHeight, drawX, drawY;
+        
+        if (imageAspect > canvasAspect) {
+            // Image is wider than canvas - fit to height
+            drawHeight = canvas.height;
+            drawWidth = drawHeight * imageAspect;
+            drawX = (canvas.width - drawWidth) / 2;
+            drawY = 0;
+        } else {
+            // Image is taller than canvas - fit to width
+            drawWidth = canvas.width;
+            drawHeight = drawWidth / imageAspect;
+            drawX = 0;
+            drawY = (canvas.height - drawHeight) / 2;
+        }
+        
+        ctx.drawImage(gameImages.titleBackground, drawX, drawY, drawWidth, drawHeight);
+    } else {
+        // Fallback: Original title background with Hong Kong skyline silhouette
+        ctx.fillStyle = '#001122';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Simple skyline silhouette
+        ctx.fillStyle = '#000000';
+        for (let i = 0; i < canvas.width; i += 40) {
+            const buildingHeight = Math.random() * 200 + 100;
+            ctx.fillRect(i, canvas.height - buildingHeight, 38, buildingHeight);
+        }
     }
     
     // Neon glow effect for title
@@ -3744,11 +3775,11 @@ function renderTitleScreen() {
     // Main title
     ctx.font = 'bold 64px Courier New';
     ctx.fillStyle = '#00ffff';
-    ctx.fillText('HEDGE COP', canvas.width / 2 - 160, canvas.height / 2 - 80);
+    ctx.fillText('HEDGE COP', canvas.width / 2 - 160, canvas.height / 2 - 280);
     
     ctx.font = 'bold 32px Courier New';
     ctx.fillStyle = '#ff6600';
-    ctx.fillText('HONG KONG NIGHTS', canvas.width / 2 - 160, canvas.height / 2 - 20);
+    ctx.fillText('HONG KONG NIGHTS', canvas.width / 2 - 160, canvas.height / 2 - 220);
     
     // Subtitle removed since it's now part of the main title
     
