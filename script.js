@@ -1,7 +1,7 @@
 // Open Game link in new tab
 const gameBtn = document.querySelector('.menu-btn');
 gameBtn.addEventListener('click', () => {
-    window.open('/experiments/game/', '_blank');
+    window.open('/experiments/HCHKN/', '_blank');
 });
 
 // Open GPT link in new tab
