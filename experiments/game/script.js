@@ -3696,7 +3696,7 @@ function renderTitleScreen() {
     // Version/credit
     ctx.font = '12px Courier New';
     ctx.fillStyle = '#666666';
-    ctx.fillText('v2.4 - Milestone 4: Enhanced Audio System', 10, canvas.height - 10);
+    ctx.fillText('v1.1 - Hedge Cop: Hong Kong Nights', 10, canvas.height - 10);
     
     ctx.shadowBlur = 0;
 }
